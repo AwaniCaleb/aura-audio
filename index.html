@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Aura Audio</title>
+	<style>
+		:root {
+			--primary: #a855f7;
+			--primary-dark: #9333ea;
+			--primary-light: #c084fc;
+			--text: #f9fafb;
+			--bg: #121212;
+			--bg-light: #1e1e1e;
+			--bg-lighter: #2d2d2d;
+		}
+
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+		}
+
+		body {
+			background-color: var(--bg);
+			color: var(--text);
+			transition: all 0.3s ease;
+			overflow-x: hidden;
+		}
+
+		button {
+			background: none;
+			border: none;
+			cursor: pointer;
+			color: var(--text);
+		}
+
+		.app {
+			display: flex;
+			flex-direction: column;
+			height: 100vh;
+			width: 100vw;
+			overflow: hidden;
+		}
+
+		.library {
+			flex: 1;
+			overflow-y: auto;
+			padding: 20px;
+			transition: all 0.5s ease;
+		}
+
+		.header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 20px;
+			background-color: var(--bg);
+			position: sticky;
+			top: 0;
+			z-index: 10;
+		}
+
+		.header h1 {
+			font-size: 24px;
+			font-weight: 600;
+			color: var(--primary-light);
+		}
+
+		.search-container {
+			position: relative;
+			width: 50%;
+			max-width: 400px;
+		}
+
+		.search-input {
+			width: 100%;
+			padding: 10px 16px;
+			border-radius: 20px;
+			border: none;
+			background-color: var(--bg-light);
+			color: var(--text);
+			font-size: 14px;
+			transition: all 0.3s ease;
+		}
+
+		.search-input:focus {
+			outline: none;
+			background-color: var(--bg-lighter);
+			box-shadow: 0 0 0 2px var(--primary-light);
+		}
+
+		.view-toggle {
+			display: flex;
+			gap: 10px;
+		}
+
+		.view-btn {
+			padding: 8px 12px;
+			border-radius: 16px;
+			font-size: 14px;
+			transition: all 0.2s ease;
+		}
+
+		.view-btn.active {
+			background-color: var(--primary);
+		}
+
+		.library-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+			gap: 20px;
+			padding-bottom: 100px;
+		}
+
+		.library-list {
+			display: flex;
+			flex-direction: column;
+			gap: 12px;
+			padding-bottom: 100px;
+		}
+
+		.track-card {
+			background: var(--bg-light);
+			border-radius: 12px;
+			overflow: hidden;
+			transition: all 0.3s ease;
+			cursor: pointer;
+		}
+
+		.track-card:hover {
+			transform: translateY(-5px);
+			box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+		}
+
+		.track-card .artwork {
+			width: 100%;
+			aspect-ratio: 1/1;
+			object-fit: cover;
+		}
+
+		.track-card .info {
+			padding: 12px;
+		}
+
+		.track-card .title {
+			font-weight: 600;
+			margin-bottom: 4px;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		.track-card .artist {
+			font-size: 14px;
+			color: #aaa;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		.track-list-item {
+			display: flex;
+			align-items: center;
+			padding: 10px;
+			border-radius: 8px;
+			background-color: var(--bg-light);
+			transition: all 0.2s ease;
+			cursor: pointer;
+		}
+
+		.track-list-item:hover {
+			background-color: var(--bg-lighter);
+		}
+
+		.track-list-item .artwork {
+			width: 50px;
+			height: 50px;
+			border-radius: 6px;
+			margin-right: 15px;
+		}
+
+		.track-list-item .info {
+			flex: 1;
+		}
+
+		.track-list-item .title {
+			font-weight: 500;
+			margin-bottom: 4px;
+		}
+
+		.track-list-item .artist {
+			font-size: 13px;
+			color: #aaa;
+		}
+
+		.track-list-item .duration {
+			color: #aaa;
+			font-size: 14px;
+			margin-left: 15px;
+		}
+
+		.now-playing {
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			background-color: var(--bg-lighter);
+			padding: 15px;
+			border-top: 1px solid rgba(255, 255, 255, 0.1);
+			display: flex;
+			align-items: center;
+			transition: all 0.3s ease;
+			z-index: 100;
+		}
+
+		.now-playing.expanded {
+			height: 100vh;
+			flex-direction: column;
+			justify-content: space-around;
+			padding: 40px 20px;
+		}
+
+		.mini-player {
+			display: flex;
+			align-items: center;
+			width: 100%;
+		}
+
+		.now-playing .artwork-mini {
+			width: 50px;
+			height: 50px;
+			border-radius: 6px;
+			object-fit: cover;
+			margin-right: 15px;
+		}
+
+		.now-playing .info-mini {
+			flex: 1;
+		}
+
+		.now-playing .title {
+			font-weight: 600;
+			margin-bottom: 3px;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		.now-playing .artist {
+			font-size: 14px;
+			color: #aaa;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		.controls-mini {
+			display: flex;
+			align-items: center;
+			gap: 15px;
+		}
+
+		.control-btn {
+			color: var(--text);
+			font-size: 24px;
+			transition: all 0.2s ease;
+		}
+
+		.control-btn:hover {
+			color: var(--primary);
+		}
+
+		.play-btn {
+			width: 40px;
+			height: 40px;
+			border-radius: 50%;
+			background-color: var(--primary);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 18px;
+			transition: all 0.2s ease;
+		}
+
+		.play-btn:hover {
+			background-color: var(--primary-dark);
+			transform: scale(1.05);
+		}
+
+		.expand-btn {
+			margin-left: 15px;
+			font-size: 20px;
+		}
+
+		.full-player {
+			display: none;
+			flex-direction: column;
+			align-items: center;
+			width: 100%;
+			max-width: 500px;
+			margin: 0 auto;
+		}
+
+		.now-playing.expanded .full-player {
+			display: flex;
+		}
+
+		.now-playing.expanded .mini-player {
+			display: none;
+		}
+
+		.full-artwork {
+			width: 100%;
+			max-width: 350px;
+			aspect-ratio: 1/1;
+			border-radius: 12px;
+			box-shadow: 0 20px 30px rgba(0, 0, 0, 0.4);
+			margin-bottom: 40px;
+		}
+
+		.track-info {
+			text-align: center;
+			margin-bottom: 30px;
+			width: 100%;
+		}
+
+		.track-info .title {
+			font-size: 24px;
+			font-weight: 600;
+			margin-bottom: 10px;
+		}
+
+		.track-info .artist {
+			font-size: 16px;
+			color: #aaa;
+		}
+
+		.progress-container {
+			width: 100%;
+			margin-bottom: 10px;
+		}
+
+		.progress-bar {
+			width: 100%;
+			height: 5px;
+			background-color: var(--bg-light);
+			border-radius: 3px;
+			overflow: hidden;
+			cursor: pointer;
+		}
+
+		.progress {
+			height: 100%;
+			background-color: var(--primary);
+			width: 0%;
+			transition: width 0.1s linear;
+		}
+
+		.time-display {
+			display: flex;
+			justify-content: space-between;
+			font-size: 12px;
+			color: #aaa;
+			margin-top: 5px;
+		}
+
+		.full-controls {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 30px;
+			margin-top: 20px;
+			width: 100%;
+		}
+
+		.full-controls .control-btn {
+			font-size: 28px;
+		}
+
+		.full-controls .play-btn {
+			width: 60px;
+			height: 60px;
+			font-size: 24px;
+		}
+
+		.volume-container {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			margin-top: 30px;
+			width: 100%;
+			max-width: 300px;
+		}
+
+		.volume-icon {
+			font-size: 20px;
+		}
+
+		.volume-slider {
+			flex: 1;
+			-webkit-appearance: none;
+			width: 100%;
+			height: 5px;
+			border-radius: 3px;
+			background-color: var(--bg-light);
+			outline: none;
+		}
+
+		.volume-slider::-webkit-slider-thumb {
+			-webkit-appearance: none;
+			width: 12px;
+			height: 12px;
+			border-radius: 50%;
+			background: var(--primary);
+			cursor: pointer;
+		}
+
+		.visualizer-container {
+			width: 100%;
+			height: 60px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			margin-top: 30px;
+		}
+
+		.visualizer {
+			width: 100%;
+			height: 100%;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 3px;
+		}
+
+		.visualizer-bar {
+			flex: 1;
+			background-color: var(--primary);
+			height: 5px;
+			border-radius: 2px;
+			transition: height 0.1s ease;
+		}
+
+		.minimize-btn {
+			position: absolute;
+			top: 20px;
+			right: 20px;
+			font-size: 24px;
+		}
+
+		.file-input-container {
+			text-align: center;
+			padding: 40px 20px;
+			border: 2px dashed rgba(255, 255, 255, 0.2);
+			border-radius: 16px;
+			margin-bottom: 20px;
+		}
+
+		.file-input-container p {
+			margin-bottom: 15px;
+			color: #aaa;
+		}
+
+		.file-input-btn {
+			background-color: var(--primary);
+			color: white;
+			padding: 10px 20px;
+			border-radius: 20px;
+			font-weight: 500;
+			transition: all 0.2s ease;
+		}
+
+		.file-input-btn:hover {
+			background-color: var(--primary-dark);
+		}
+
+		.lyrics-container {
+			max-height: 200px;
+			overflow-y: auto;
+			width: 100%;
+			padding: 20px 0;
+			text-align: center;
+			display: none;
+		}
+
+		.lyrics-line {
+			margin-bottom: 8px;
+			opacity: 0.7;
+			transition: all 0.3s ease;
+		}
+
+		.lyrics-line.active {
+			font-weight: 600;
+			opacity: 1;
+			color: var(--primary-light);
+		}
+
+		.lyrics-toggle {
+			background-color: var(--bg-light);
+			border-radius: 20px;
+			padding: 6px 12px;
+			font-size: 14px;
+			margin-top: 20px;
+		}
+
+		.hidden {
+			display: none;
+		}
+
+		@keyframes pulse {
+			0% {
+				transform: scale(1);
+			}
+
+			50% {
+				transform: scale(1.05);
+			}
+
+			100% {
+				transform: scale(1);
+			}
+		}
+
+		.playing .artwork {
+			animation: pulse 2s infinite;
+		}
+
+		@media (max-width: 768px) {
+			.search-container {
+				width: 70%;
+			}
+
+			.full-artwork {
+				max-width: 280px;
+			}
+
+			.full-controls {
+				gap: 20px;
+			}
+
+			.track-info .title {
+				font-size: 20px;
+			}
+		}
+	</style>
+
+	<script type="module" src="/src/main.js" defer></script>
+</head>
+
+<body>
+	<div class="app">
+		<div class="library">
+			<div class="header">
+				<h1>Aura Audio</h1>
+				<div class="search-container">
+					<input type="text" class="search-input" placeholder="Search music...">
+				</div>
+				<div class="view-toggle">
+					<button class="view-btn grid-view active">Grid</button>
+					<button class="view-btn list-view">List</button>
+				</div>
+			</div>
+
+			<div class="file-input-container">
+				<p>Select your music files to get started</p>
+				<input type="file" id="music-input" accept="audio/mp3, audio/mpeg" multiple style="display: none;">
+				<button class="file-input-btn" id="file-select-btn">Select MP3 Files</button>
+			</div>
+
+			<div class="library-grid"></div>
+			<div class="library-list hidden"></div>
+		</div>
+
+		<div class="now-playing">
+			<div class="mini-player">
+				<img src="/assets/images/static/default-music-art-1.jpeg" alt="Album Cover" class="artwork-mini">
+				<div class="info-mini expand-btn">
+					<div class="title">No Track Selected</div>
+					<div class="artist">-</div>
+				</div>
+				<div class="controls-mini">
+					<button class="control-btn prev-btn">⏮️</button>
+					<button class="play-btn">▶️</button>
+					<button class="control-btn next-btn">⏭️</button>
+				</div>
+				<!-- <button class="expand-btn">↑</button> -->
+			</div>
+
+			<button class="minimize-btn">↓</button>
+
+			<div class="full-player">
+				<div class="container">
+					<div class="row">
+						<div class="col-md-7 col-lg-6">
+							<div>
+								<img src="/assets/images/static/default-music-art-1.jpeg" alt="Album Cover"
+									class="full-artwork">
+							</div>
+	
+							<div class="track-info">
+								<div class="title">No Track Selected</div>
+								<div class="artist">-</div>
+							</div>
+	
+							<div class="progress-container">
+								<div class="progress-bar">
+									<div class="progress"></div>
+								</div>
+								<div class="time-display">
+									<span class="current-time">0:00</span>
+									<span class="total-time">0:00</span>
+								</div>
+							</div>
+	
+							<div class="full-controls">
+								<button class="control-btn shuffle-btn">🔀</button>
+								<button class="control-btn prev-btn">⏮️</button>
+								<button class="play-btn">▶️</button>
+								<button class="control-btn next-btn">⏭️</button>
+								<button class="control-btn repeat-btn">🔁</button>
+							</div>
+	
+							<div class="volume-container">
+								<span class="volume-icon">🔊</span>
+								<input type="range" class="volume-slider" min="0" max="1" step="0.01" value="1">
+							</div>
+						</div>
+						<div class="col-md-5 col-lg-6">
+							<button class="lyrics-toggle">Show Lyrics</button>
+	
+							<div class="lyrics-container"></div>
+						</div>
+					</div>
+				</div>
+				<div>
+					<div class="visualizer-container d-none">
+						<div class="visualizer">
+							<div class="visualizer-bar"></div>
+							<div class="visualizer-bar"></div>
+							<div class="visualizer-bar"></div>
+							<div class="visualizer-bar"></div>
+							<div class="visualizer-bar"></div>
+							<div class="visualizer-bar"></div>
+							<div class="visualizer-bar"></div>
+							<div class="visualizer-bar"></div>
+							<div class="visualizer-bar"></div>
+							<div class="visualizer-bar"></div>
+							<div class="visualizer-bar"></div>
+							<div class="visualizer-bar"></div>
+							<div class="visualizer-bar"></div>
+							<div class="visualizer-bar"></div>
+							<div class="visualizer-bar"></div>
+							<div class="visualizer-bar"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<audio id="audio-player"></audio>
+
+</body>
+
+</html>
